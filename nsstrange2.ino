@@ -1,35 +1,39 @@
 #include <FastLED.h>
-#include <Thread.h>
-#include <ThreadController.h>
 
 #define CIRCLE_PIN         9
-#define CIRCLE_NUM_LEDS    63
+#define CIR_NUM            63
 
 #define OUTSQ_PIN          10
-#define OUTSQ_NUM_LEDS     46
+#define OUT_NUM            45
 
 #define INSQ_PIN           11
-#define INSQ_NUM_LEDS      46
+#define IN_NUM             46
 
 #define EYE_PIN            3
-#define EYE_NUM_LEDS       18
+#define EYE_NUM            18
 
 #define BRIGHTNESS         255
 
 #define LED_TYPE           WS2812B
 #define COLOR_ORDER        GRB
 
+#define COLOR_MAIN         CRGB::Orange
 
-CRGB lcir [CIRCLE_NUM_LEDS];
-CRGB lout [ OUTSQ_NUM_LEDS];
-CRGB lin  [ INSQ_NUM_LEDS ];
-CRGB leye [ EYE_NUM_LEDS  ];
+// For wipes
+#define FORWARD true
+#define BACKWARD false
+
+
+CRGB lcir [CIR_NUM];
+CRGB lout [OUT_NUM];
+CRGB lin  [IN_NUM ];
+CRGB leye [EYE_NUM];
 
 void clearPixels() {
-  fill_solid(leye, EYE_NUM_LEDS, CRGB::Black);
-  fill_solid(lin,  INSQ_NUM_LEDS, CRGB::Black);
-  fill_solid(lout, OUTSQ_NUM_LEDS, CRGB::Black);
-  fill_solid(lcir, CIRCLE_NUM_LEDS, CRGB::Black);
+  fill_solid(leye, EYE_NUM, CRGB::Black);
+  fill_solid(lin,  IN_NUM,  CRGB::Black);
+  fill_solid(lout, OUT_NUM, CRGB::Black);
+  fill_solid(lcir, CIR_NUM, CRGB::Black);
   FastLED.show();
 }
 
@@ -37,124 +41,142 @@ void clearPixels() {
 // ------------
 // ------------
 
+unsigned long int eyeTimer = 0;
 void eyeAni() {
     Serial.println("Eye");
+    Serial.println(millis());
   
     static byte eb = 0;
 
     switch(eb) {
       case 0:
-        for (byte i = EYE_NUM_LEDS/2; i < EYE_NUM_LEDS; i++)
+        for (byte i = EYE_NUM/2; i < EYE_NUM; i++)
           leye[i] = CRGB::Black;
         break;
 
       case 1:
-        for (byte i = 0; i < EYE_NUM_LEDS/2; i++)
-          leye[i] = CRGB::Orange;
+        for (byte i = 0; i < EYE_NUM/2; i++)
+          leye[i] = CRGB::Green;
         break;
       
       case 2:
-        for (byte i = EYE_NUM_LEDS/2; i < EYE_NUM_LEDS; i++)
-          leye[i] = CRGB::Orange;
+        for (byte i = EYE_NUM/2; i < EYE_NUM; i++)
+          leye[i] = CRGB::Green;
         break;
 
       case 3:
-        for (byte i = 0; i < EYE_NUM_LEDS/2; i++)
-            leye[i] = CRGB::Black;
+//        for (byte i = 0; i < EYE_NUM/2; i++)
+//            leye[i] = CRGB::Black;
         break;
     }
 
     eb = (eb + 1) % 4;
-    delay(50);
     FastLED.show(); 
 
-    Serial.println("Eye End");
+    eyeTimer = millis();
+    Serial.println("Eye End ");
+    Serial.println(eyeTimer);
 }
 
-#define LED_TRAIN 5
-void inAni() {
-    Serial.println("InSquare");
-  
-    for (byte q = 0; q < INSQ_NUM_LEDS; q = q + LED_TRAIN) {
-      for (byte i = 0; i < LED_TRAIN; i++) {
-        lin [i+q] = CRGB::Red;    //turn every third pixel on  
-      }
-
-      FastLED.show();
-      delay(200);
-
-      for (byte i = 0; i < LED_TRAIN; i++) {
-        lin [i+q] = CRGB::Black;    //turn every third pixel on  
-      }
-    }
-  
-    delay(200); 
-
-    Serial.println("InSquare End");
-}
-
-//void outAni() {
-//  static byte position = 0;
-//  
-//  for (uint8_t j = 0; j < OUTSQ_NUM_LEDS; j+=2)
-//    lout[j] = CRGB::Orange;
+#define MAX_JUMPS 5
+unsigned long inTimer = 0;
+//void inAni2() {
+//    static byte jump = 0;
 //
-//  FastLED.show();
-//  fill_solid(lout, OUTSQ_NUM_LEDS, CRGB::Black);
+//    fill_solid(lin,  IN_NUM, CRGB::Black);
+//    for (byte i = 0; i < IN_NUM; i += (jump + 1))
+//      lin[i] = COLOR_MAIN;
+//    FastLED.show();
+//      
+//    jump = (jump + 1) % MAX_JUMPS;
 //
-//  i = (i + 1) % 2;
+//    inTimer = millis();
 //}
+void inAni() {
+    static boolean direction = BACKWARD;
+    static byte i = 0;
 
+    if (i == 0) {
+      direction = !direction;
+    }
+
+    lin[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
+    FastLED.show();
+
+    i = (i + 1) % IN_NUM;
+
+    inTimer = millis();
+}
+
+unsigned long outTimer = 0;
+void outAni() {
+    static boolean direction = BACKWARD;
+    static byte i = 0;
+
+    if (i == 0) {
+      direction = !direction;
+    }
+
+    lout[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
+    FastLED.show();
+
+    i = (i + 1) % OUT_NUM;
+
+    outTimer = millis();
+}
+
+unsigned long int cirTimer = 0;
 void cirAni() {
-    Serial.println("Circle");
-  
-    for (byte i = 0; i < CIRCLE_NUM_LEDS; i++) {
-      lcir[i] = CRGB::Orange;
-      FastLED.show();
-      delay(100 - i);
+    static boolean direction = BACKWARD;
+    static byte i = 0;
+
+    if (i == 0) {
+      direction = !direction;
     }
 
-    for (byte i = 0; i < CIRCLE_NUM_LEDS; i++) {
-      lcir[i] = CRGB::Black;
-      FastLED.show();
-      delay(100 - i);
-    }
+    lcir[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
+    FastLED.show();
 
-    Serial.println("Circle End");
+    i = (i + 1) % CIR_NUM;
+
+    cirTimer = millis();
 }
 
 // ------------
 // ------------
 // ------------
-
-ThreadController tc = ThreadController();
 
 void setup() {
   Serial.begin(9600);
   delay( 100 ); // power-up safety delay
-  FastLED.addLeds<LED_TYPE, CIRCLE_PIN, COLOR_ORDER>(lcir, CIRCLE_NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<LED_TYPE, OUTSQ_PIN, COLOR_ORDER>(lout, OUTSQ_NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<LED_TYPE, INSQ_PIN, COLOR_ORDER>(lin, INSQ_NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<LED_TYPE, EYE_PIN, COLOR_ORDER>(leye, EYE_NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<LED_TYPE, CIRCLE_PIN, COLOR_ORDER>(lcir, CIR_NUM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<LED_TYPE, OUTSQ_PIN, COLOR_ORDER>(lout, OUT_NUM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<LED_TYPE, INSQ_PIN, COLOR_ORDER>(lin, IN_NUM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<LED_TYPE, EYE_PIN, COLOR_ORDER>(leye, EYE_NUM).setCorrection( TypicalLEDStrip );
   FastLED.setBrightness(  BRIGHTNESS );
 
   clearPixels();
-
-  Thread eyeT = Thread(); eyeT.onRun(eyeAni);
-//  Thread outT = Thread(); outT.onRun(outAni);
-  Thread inT = Thread() ;  inT.onRun(inAni) ;
-  Thread cirT = Thread(); cirT.onRun(cirAni);
-
-  tc.add(&eyeT);
-  tc.add(&cirT);
-//  tc.add(&outT);
-  tc.add(&inT);
 }
 
 // ------------
 // ------------
 // ------------
 
+#define EYE_INTERVAL 500
+#define IN_INTERVAL 40
+#define OUT_INTERVAL 20
+#define CIR_INTERVAL 25
+int previousTime = 0;
 void loop(){
-  tc.run();  
+  const unsigned long int currentTime = millis();
+  if (currentTime - eyeTimer >= EYE_INTERVAL)
+    eyeAni();
+  if (currentTime - cirTimer >= CIR_INTERVAL)
+    cirAni();
+  if (currentTime - inTimer >= IN_INTERVAL)
+    inAni();
+  if (currentTime - outTimer >= OUT_INTERVAL)
+    outAni();
+
+  previousTime = currentTime;
 }
