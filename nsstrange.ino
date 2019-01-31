@@ -17,7 +17,7 @@
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
-#define COLOR_MAIN CRGB::Orange
+#define COLOR_MAIN CRGB::Gold
 
 // For wipes
 #define FORWARD true
@@ -52,8 +52,8 @@ void eyeAni()
 	switch (eb)
 	{
 	case 0:
-		for (byte i = EYE_NUM / 2; i < EYE_NUM; i++)
-			leye[i] = CRGB::Black;
+//		for (byte i = EYE_NUM / 2; i < EYE_NUM; i++)
+//			leye[i] = CRGB::Black;
 		break;
 
 	case 1:
@@ -67,8 +67,8 @@ void eyeAni()
 		break;
 
 	case 3:
-		//        for (byte i = 0; i < EYE_NUM/2; i++)
-		//            leye[i] = CRGB::Black;
+		        for (byte i = 0; i < EYE_NUM/2; i++)
+		            leye[i] = CRGB::Black;
 		break;
 	}
 
@@ -120,7 +120,9 @@ void outAni()
 	outTimer = millis();
 }
 
+boolean CIR_GO = true;
 unsigned long int cirTimer = 0;
+unsigned long int goTimer = 0;
 void cirAni()
 {
 	static boolean direction = BACKWARD;
@@ -129,6 +131,8 @@ void cirAni()
 	if (i == 0)
 	{
 		direction = !direction;
+    CIR_GO = false;
+    goTimer = millis();
 	}
 
 	lcir[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
@@ -160,13 +164,15 @@ void setup()
 // ------------
 
 #define EYE_INTERVAL 500
-#define IN_INTERVAL 40
-#define OUT_INTERVAL 20
+#define IN_INTERVAL 50
+#define OUT_INTERVAL 35
 #define CIR_INTERVAL 25
-int previousTime = 0;
+#define CIR_GO_INT  2000
 void loop()
 {
 	const unsigned long int currentTime = millis();
+ if (currentTime - goTimer >= CIR_GO_INT && !CIR_GO)
+     CIR_GO = true;
 	if (currentTime - eyeTimer >= EYE_INTERVAL)
 		eyeAni();
 	if (currentTime - cirTimer >= CIR_INTERVAL)
@@ -176,5 +182,4 @@ void loop()
 	if (currentTime - outTimer >= OUT_INTERVAL)
 		outAni();
 
-	previousTime = currentTime;
 }
