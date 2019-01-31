@@ -1,5 +1,5 @@
 # Arduino-controlled Doctor Stange Spell Circle
-## Made using WS2812B and FastLEDs.
+## Made using WS2812B and FastLEDs
 
 This is the source code for the Doctor Strange standee and the spell circle that we made 
 for DJ NSS Blood Donation event (04/feb/2019). Received great help from my seniors - 

@@ -18,6 +18,7 @@
 #define COLOR_ORDER GRB
 
 #define COLOR_MAIN CRGB::Orange
+#define COLOR_EYE CRGB::Green
 
 // For wipes
 #define FORWARD true
@@ -31,9 +32,9 @@ CRGB leye[EYE_NUM];
 void clearPixels()
 {
 	fill_solid(leye, EYE_NUM, CRGB::Black);
-	fill_solid(lin, IN_NUM, CRGB::Black);
-	fill_solid(lout, OUT_NUM, CRGB::Black);
 	fill_solid(lcir, CIR_NUM, CRGB::Black);
+	fill_solid(lout, OUT_NUM, CRGB::Black);
+	fill_solid(lin,  IN_NUM,  CRGB::Black);
 	FastLED.show();
 }
 
@@ -44,9 +45,6 @@ void clearPixels()
 unsigned long int eyeTimer = 0;
 void eyeAni()
 {
-	Serial.println("Eye");
-	Serial.println(millis());
-
 	static byte eb = 0;
 
 	switch (eb)
@@ -58,12 +56,12 @@ void eyeAni()
 
 	case 1:
 		for (byte i = 0; i < EYE_NUM / 2; i++)
-			leye[i] = CRGB::Green;
+			leye[i] = COLOR_EYE;
 		break;
 
 	case 2:
 		for (byte i = EYE_NUM / 2; i < EYE_NUM; i++)
-			leye[i] = CRGB::Green;
+			leye[i] = COLOR_EYE;
 		break;
 
 	case 3:
@@ -76,13 +74,15 @@ void eyeAni()
 	FastLED.show();
 
 	eyeTimer = millis();
-	Serial.println("Eye End ");
-	Serial.println(eyeTimer);
 }
 
-#define MAX_JUMPS 5
-unsigned long inTimer = 0;
+// ------------
+// ------------
+// ------------
 
+byte flags = 0x00;
+
+unsigned long inTimer = 0;
 void inAni()
 {
 	static boolean direction = BACKWARD;
@@ -91,6 +91,7 @@ void inAni()
 	if (i == 0)
 	{
 		direction = !direction;
+		flags |= 0b100;
 	}
 
 	lin[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
@@ -110,6 +111,7 @@ void outAni()
 	if (i == 0)
 	{
 		direction = !direction;
+		flags |= 0b010;
 	}
 
 	lout[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
@@ -129,6 +131,7 @@ void cirAni()
 	if (i == 0)
 	{
 		direction = !direction;
+		flags |= 0b001;
 	}
 
 	lcir[i] = direction == FORWARD ? COLOR_MAIN : CRGB::Black;
@@ -147,9 +150,9 @@ void setup()
 {
 	delay(100); // power-up safety delay
 	FastLED.addLeds<LED_TYPE, CIRCLE_PIN, COLOR_ORDER>(lcir, CIR_NUM).setCorrection(TypicalLEDStrip);
-	FastLED.addLeds<LED_TYPE, OUTSQ_PIN, COLOR_ORDER>(lout, OUT_NUM).setCorrection(TypicalLEDStrip);
-	FastLED.addLeds<LED_TYPE, INSQ_PIN, COLOR_ORDER>(lin, IN_NUM).setCorrection(TypicalLEDStrip);
-	FastLED.addLeds<LED_TYPE, EYE_PIN, COLOR_ORDER>(leye, EYE_NUM).setCorrection(TypicalLEDStrip);
+	FastLED.addLeds<LED_TYPE, OUTSQ_PIN	, COLOR_ORDER>(lout, OUT_NUM).setCorrection(TypicalLEDStrip);
+	FastLED.addLeds<LED_TYPE, INSQ_PIN	, COLOR_ORDER>(lin , IN_NUM ).setCorrection(TypicalLEDStrip);
+	FastLED.addLeds<LED_TYPE, EYE_PIN	, COLOR_ORDER>(leye, EYE_NUM).setCorrection(TypicalLEDStrip);
 	FastLED.setBrightness(BRIGHTNESS);
 
 	clearPixels();
@@ -159,22 +162,22 @@ void setup()
 // ------------
 // ------------
 
-#define EYE_INTERVAL 500
-#define IN_INTERVAL 40
-#define OUT_INTERVAL 20
-#define CIR_INTERVAL 25
-int previousTime = 0;
+#define EYE_INTERVAL 	500
+#define IN_INTERVAL  	40
+#define OUT_INTERVAL 	30
+#define CIR_INTERVAL 	25
 void loop()
 {
 	const unsigned long int currentTime = millis();
+	if (flags & 0b111 == 0b111)
+		flags = 0;
+	
 	if (currentTime - eyeTimer >= EYE_INTERVAL)
 		eyeAni();
-	if (currentTime - cirTimer >= CIR_INTERVAL)
+	if (currentTime - cirTimer >= CIR_INTERVAL && !(flags & 0b001))
 		cirAni();
-	if (currentTime - inTimer >= IN_INTERVAL)
-		inAni();
-	if (currentTime - outTimer >= OUT_INTERVAL)
+	if (currentTime - outTimer >= OUT_INTERVAL && !(flags & 0b010))
 		outAni();
-
-	previousTime = currentTime;
+	if (currentTime - inTimer  >= IN_INTERVAL  && !(flags & 0b100))
+		inAni();
 }
