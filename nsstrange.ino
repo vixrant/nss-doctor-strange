@@ -81,14 +81,14 @@ void eyeAni()
 // ------------
 
 byte flags = 0x00;
+boolean direction = BACKWARD;
 
 unsigned long inTimer = 0;
 void inAni()
 {
-	static boolean direction = BACKWARD;
 	static byte i = 0;
 
-	if (i == 0)
+	if (i == CIR_NUM - 1)
 	{
 		direction = !direction;
 		flags |= 0b100;
@@ -105,12 +105,10 @@ void inAni()
 unsigned long outTimer = 0;
 void outAni()
 {
-	static boolean direction = BACKWARD;
 	static byte i = 0;
 
-	if (i == 0)
+	if (i == OUT_NUM - 1)
 	{
-		direction = !direction;
 		flags |= 0b010;
 	}
 
@@ -125,12 +123,10 @@ void outAni()
 unsigned long int cirTimer = 0;
 void cirAni()
 {
-	static boolean direction = BACKWARD;
 	static byte i = 0;
 
-	if (i == 0)
+	if (i == IN_NUM - 1)
 	{
-		direction = !direction;
 		flags |= 0b001;
 	}
 
@@ -169,8 +165,10 @@ void setup()
 void loop()
 {
 	const unsigned long int currentTime = millis();
-	if (flags & 0b111 == 0b111)
+	if (flags & 0b111 == 0b111) {
 		flags = 0;
+		direction = !direction;
+	}
 	
 	if (currentTime - eyeTimer >= EYE_INTERVAL)
 		eyeAni();
